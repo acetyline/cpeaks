@@ -201,7 +201,7 @@ for chrnum in range(1,23):
     acc_with_reject=Accuracy()
     acc_no_reject=Accuracy()
     with torch.no_grad():
-        model1=model.to(device)
+        model1=model1.to(device)
         model1.eval()
         model2.eval()
         for data,_,evaluatetarget,target in testloader:
