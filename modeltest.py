@@ -6,6 +6,7 @@ from sklearn.metrics import confusion_matrix
 from torch.cuda.amp import autocast as autocast
 import copy
 import torch.nn.functional as F
+from typing import Callable
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -39,7 +40,6 @@ class MLP(nn.Module):
             x = torch.nn.functional.relu(layer(x)) if i < self.num_layers - 1 else layer(x)
         return x
     
-from typing import Callable
 class DenseLayer(nn.Module):
     def __init__(
         self,
@@ -80,10 +80,8 @@ class decn1d(nn.Module):
             activation_fn=nn.Identity(),
         )
         hidden_dim=32
-        #self.query_embed = nn.Linear(hidden_dim,num_queries*hidden_dim)
         self.class_embed = nn.Linear(hidden_dim, 2)
-        #self.norm1=nn.Softmax(dim=2)
-        self.box_embed=MLP(hidden_dim,hidden_dim,2,3)#2表示左端位置和右端位置
+        self.box_embed=MLP(hidden_dim,hidden_dim,2,3)
 
     def forward(self,x):
         x=x.permute(0,2,1)
@@ -94,7 +92,6 @@ class decn1d(nn.Module):
         hs = self.bottle(x)
         hs=hs.view(32,5,32)
         hs=hs.unsqueeze(0)
-        #print(hs.shape)
         
         outputs_class = self.class_embed(hs)
         outputs_coord = self.box_embed(hs).sigmoid()
@@ -124,8 +121,6 @@ def box_iou(boxes1, boxes2):
     area2 = boxsize(boxes2)
     lt = torch.max(boxes1[:, None, 0], boxes2[:, 0])
     rb = torch.min(boxes1[:, None, 1], boxes2[:, 1])
-    #print(lt)
-    #print(rb)
     wh = (rb - lt).clamp(min=0)  # [N,M,2]
     union = area1[:, None] + area2 - wh
     iou = wh / union
@@ -191,7 +186,7 @@ acc=Accuracy()
 import sys
 sys.path.append('./cPeaks/deepCNN')
 import DeepCNN
-model=torch.load('/data1/zyb/model1/epochs4.pt')
+model1=torch.load('/data1/zyb/model1/epochs4.pt')
 model2=torch.load('/data1/zyb/model2/epochs4.pt').to(device)
 model3=torch.load('./cPeaks/deepCNN/epoch5_20230419.pth').to(device)
 for chrnum in range(1,23):
@@ -203,11 +198,11 @@ for chrnum in range(1,23):
         pass
     testset=torch.load('/data1/zyb/3/'+'chr'+str(chrnum)+'-test.pt')
     testloader = DataLoader(testset, batch_size=batch_size, shuffle=True,num_workers=0,pin_memory=True)
-    acc4=Accuracy()
-    acc5=Accuracy()
+    acc_with_reject=Accuracy()
+    acc_no_reject=Accuracy()
     with torch.no_grad():
-        model=model.to(device)
-        model.eval()
+        model1=model.to(device)
+        model1.eval()
         model2.eval()
         for data,_,evaluatetarget,target in testloader:
             data=data.to(device)
@@ -215,17 +210,16 @@ for chrnum in range(1,23):
             evaluatetarget=evaluatetarget.to(device)
             if data.shape[0]!=32:
                 continue
-            result=model(data)
+            result=model1(data)
             result['pred_logits']=torch.softmax(result['pred_logits'],dim=-1)
-            bs=32
-            tobox=torch.zeros([bs,2000]).to(device)
+            tobox=torch.zeros([batch_size,2000]).to(device)
             inputs=data.permute(0,2,1)
             outputs1 = model2(inputs).float().detach()
             outputs2=torch.round(outputs1)
             reject1result=model3(inputs)
-            for i in range(bs):
+            for i in range(batch_size):
                 if reject1result[i][0]>=0.5:
-                    acc4.update(tobox[i][501:1501],evaluatetarget[i][501:1501])
+                    acc_with_reject.update(tobox[i][501:1501],evaluatetarget[i][501:1501])
                     continue
                 else:
                     for j in range(5):
@@ -236,7 +230,6 @@ for chrnum in range(1,23):
                             r=result['pred_boxes'][i][j][0]+result['pred_boxes'][i][j][1]*0.5
                             l=max(int(2000*l),0)
                             r=min(int(2000*r)-1,1999)
-                            #print(outputs1)
                             while True:
                                 if outputs1[i][l]>=0.5 or l>=r-1:
                                     break
@@ -258,11 +251,11 @@ for chrnum in range(1,23):
                                 else:
                                     r=r+1
                             tobox[i][l:r+1]=1.0
-                acc4.update(tobox[i][501:1501],evaluatetarget[i][501:1501])
-                acc5.update(tobox[i][501:1501],evaluatetarget[i][501:1501])
-    print(acc4.confusion_matrix())
-    print(acc5.confusion_matrix())
+                acc_with_reject.update(tobox[i][501:1501],evaluatetarget[i][501:1501])
+                acc_no_reject.update(tobox[i][501:1501],evaluatetarget[i][501:1501])
+    print(acc_with_reject.confusion_matrix())
+    print(acc_no_reject.confusion_matrix())
     with open('result.txt','a') as f:
         f.write(str(chrnum)+':\n')
-        f.write(str(acc4.confusion_matrix())+'\n')
-        f.write(str(acc5.confusion_matrix())+'\n')
+        f.write(str(acc_with_reject.confusion_matrix())+'\n')
+        f.write(str(acc_no_reject.confusion_matrix())+'\n')
