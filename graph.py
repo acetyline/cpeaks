@@ -356,6 +356,6 @@ if False:
         return newnamelist,mat2
 
 if __name__=='main':
-    newnamelist,mat2=query('chr1',938020,938980,smallstep=10,minpeakrate=0.1)
+    newnamelist,mat1,mat2=query('chr1',938020,938980,smallstep=10,minpeakrate=0.1)
     heatmap(mat2,xticklabels=newnamelist,yticklabels=newnamelist,annot=True, fmt=".2f", cmap="YlGnBu",ax=None)
     plt.savefig('graph/graph938020-938980.png')
