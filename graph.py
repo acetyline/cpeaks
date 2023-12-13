@@ -7,15 +7,16 @@ import matplotlib.pyplot as plt
 path='/nfs/mqc/Consensus_peak/ATAC/ENCODE_2022_Bulk/processed_data/bed_unzip/'
 beds=[i for i in os.listdir(path) if i.endswith('.bed')]
 for i in beds:
-    df=pd.read_csv(path+i,sep='\t',header=None)
+    df=pd.read_csv(path+i,sep='\t',header=None,dtype={'1': 'int', '2': 'int'})
     df=df.drop_duplicates(subset=[1,2],keep='first')
     try:
         alldata=pd.concat([alldata,df],axis=0,ignore_index=True)
     except:
         alldata=df
 
-        
+
 def query(chrname,left1,right1,smallstep=20,uplimitrate=0.1,minpeakrate=0.1):
+    
     '''
     input:
     chrname: string;chromosome name
@@ -37,11 +38,23 @@ def query(chrname,left1,right1,smallstep=20,uplimitrate=0.1,minpeakrate=0.1):
     arealen: the length of peak
     
     '''
+    dflist=[]
+    beds=[i for i in os.listdir(path) if i.endswith('.bed')]
+    for i in beds:
+        df=pd.read_csv(path+i,sep='\t',header=None,dtype={'1': 'int', '2': 'int'})
+        df=df.drop_duplicates(subset=[1,2],keep='first')
+        df=df[df[0]==chrname]
+        df[1]=df[1].astype(int)
+        df[2]=df[2].astype(int)
+        dflist.append(df)
     assert((right1-left1)%smallstep==0)
     
     minpeaklen=(right1-left1)*minpeakrate//smallstep
     df=alldata[alldata[0]==chrname]
-    df=alldata[(alldata[1]>=left1)&(alldata[2]<=right1)]
+
+    df[1]=df[1].astype('int')
+    df[2]=df[2].astype('int')
+    df=df[(df[1]>=left1)&(df[2]<=right1)]
         
     split1=np.zeros((right1-left1)//smallstep).astype(int)
     split2=np.zeros((right1-left1)//smallstep).astype(int)
@@ -140,16 +153,24 @@ def query(chrname,left1,right1,smallstep=20,uplimitrate=0.1,minpeakrate=0.1):
     
     comp=np.zeros((right1-left1)//smallstep).astype(int)
     start=0
+    #print(arealen)
     for i in range(len(arealen)):
-        comp[start:arealen[i]+1]=i
-        start=arealen[i]+1
-        
+        #if i==2:
+            #print(start)
+            #print(arealen[i]+1)
+        comp[start:start+arealen[i]+1]=i
+        start=arealen[i]
+    
+    #print(comp)
     mat=np.zeros([len(arealen),len(arealen)])
-    for i in beds:
-        df=pd.read_csv(path+i,sep='\t',header=None)
-        df=df.drop_duplicates(subset=[1,2],keep='first')
-        df=df[(df[0]==chrname)&(df[1]>=left1)&(df[2]<=right1)]
-        t=np.zeros((right1-left1)//smallstep).astype(int)
+    count=0
+    for df in dflist:
+        
+        df=df[(df[1]>=left1)&(df[2]<=right1)]
+        if df.empty:
+            continue
+        count+=1
+        t=np.zeros(len(arealen)).astype(int)
         for index,row in df.iterrows():
             lindex=((row[1]-left1+smallstep//2)//smallstep)
             rindex=((row[2]-left1+smallstep//2)//smallstep)
@@ -157,7 +178,7 @@ def query(chrname,left1,right1,smallstep=20,uplimitrate=0.1,minpeakrate=0.1):
         mat+=np.outer(t,t)
             
     mat1=mat/mat.diagonal()
-    mat2=mat/len(beds)
+    mat2=mat/count
     
     newnamelist=[]
     for i in name:
