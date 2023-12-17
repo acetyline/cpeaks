@@ -61,13 +61,13 @@ def query(chrname,left1,right1,smallstep=20,uplimitrate=0.1,minpeakrate=0.1):
     arealen=np.ones((right1-left1)//smallstep).astype(int)
     mat1=np.zeros([(right1-left1)//smallstep,(right1-left1)//smallstep])
     for index,row in df.iterrows():
-        lindex=((row[1]-left1+smallstep//2)//smallstep)
-        rindex=((row[2]-left1+smallstep//2)//smallstep)
+        lindex=((row[1]-left1)//smallstep)
+        rindex=((row[2]-left1)//smallstep)
         t=np.zeros((right1-left1)//smallstep).astype(int)
         t[lindex:rindex+1]=1
         mat1+=np.outer(t,t)
-        split1[((row[1]-left1+smallstep//2)//smallstep)]+=1
-        split2[((row[2]-left1+smallstep//2)//smallstep)]+=1
+        split1[((row[1]-left1)//smallstep)]+=1
+        split2[((row[2]-left1)//smallstep)]+=1
         
     mat1=mat1/mat1.diagonal()
     
@@ -172,8 +172,8 @@ def query(chrname,left1,right1,smallstep=20,uplimitrate=0.1,minpeakrate=0.1):
         count+=1
         t=np.zeros(len(arealen)).astype(int)
         for index,row in df.iterrows():
-            lindex=((row[1]-left1+smallstep//2)//smallstep)
-            rindex=((row[2]-left1+smallstep//2)//smallstep)
+            lindex=((row[1]-left1)//smallstep)
+            rindex=((row[2]-left1)//smallstep)
             t[comp[lindex]:comp[rindex]+1]=1
         mat+=np.outer(t,t)
             
@@ -210,7 +210,7 @@ if False:
         '''
         assert((right1-left1)%smallstep==0)
         
-        minpeaklen=(right1-left1)*minpeakrate//smallstep
+        minpeaklen=(right1-left1)*minpeakrate/smallstep//2/smallstep
         df=alldata[alldata[0]==chrname]
         df=alldata[(alldata[1]>=left1)&(alldata[2]<=right1)]
             
