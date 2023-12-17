@@ -63,7 +63,7 @@ def query(chrname,left1,right1,smallstep=20,uplimitrate=0.1,minpeakrate=0.1):
     for index,row in df.iterrows():
         lindex=((row[1]-left1+smallstep//2)//smallstep)
         rindex=((row[2]-left1+smallstep//2)//smallstep)
-        t=np.zeros((right1-left1)//smallstep).astype(int)
+        t=np.zeros((right1-left1)//smallstep+1).astype(int)
         t[lindex:rindex+1]=1
         mat1+=np.outer(t,t)
         split1[((row[1]-left1+smallstep//2)//smallstep)]+=1
@@ -151,7 +151,7 @@ def query(chrname,left1,right1,smallstep=20,uplimitrate=0.1,minpeakrate=0.1):
         else:
             break
     
-    comp=np.zeros((right1-left1)//smallstep).astype(int)
+    comp=np.zeros((right1-left1)//smallstep+1).astype(int)
     start=0
     #print(arealen)
     for i in range(len(arealen)):
