@@ -59,7 +59,7 @@ def query(chrname,left1,right1,smallstep=20,uplimitrate=0.1,minpeakrate=0.1):
     split1=np.zeros((right1-left1)//smallstep+1).astype(int)
     split2=np.zeros((right1-left1)//smallstep+1).astype(int)
     arealen=np.ones((right1-left1)//smallstep+1).astype(int)
-    mat1=np.zeros([(right1-left1)//smallstep+1(right1-left1)//smallstep+1])
+    mat1=np.zeros([(right1-left1)//smallstep+1,(right1-left1)//smallstep+1])
     for index,row in df.iterrows():
         lindex=((row[1]-left1+smallstep//2)//smallstep)
         rindex=((row[2]-left1+smallstep//2)//smallstep)
