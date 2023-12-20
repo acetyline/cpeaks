@@ -159,7 +159,7 @@ def query(chrname,left1,right1,smallstep=20,uplimitrate=0.1,minpeakrate=0.1):
             #print(start)
             #print(arealen[i]+1)
         comp[start:start+arealen[i]+1]=i
-        start=arealen[i]
+        start+=arealen[i]
     
     #print(comp)
     mat=np.zeros([len(arealen),len(arealen)])
